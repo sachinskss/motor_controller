@@ -1,0 +1,11 @@
+build/
+rust/target/
+*.o
+*.exe
+*.out
+*.log
+*.csv
+*.pyc
+__pycache__/
+.vscode/
+.idea/

@@ -1,0 +1,32 @@
+
+### `skill.yaml`
+```yaml
+name: mixed-cpp-rust-embedded-sim
+version: 1.0.0
+description: |
+  A Manus Skill for mixed C++/Rust development targeting embedded systems.
+  Includes simulated motor controller with FOC, HAL, bootloader, and Python tooling.
+author: Your Name
+tags:
+  - embedded
+  - cpp
+  - rust
+  - simulation
+  - motor-control
+  - ffi
+capabilities:
+  - code-generation
+  - explanation
+  - debugging
+  - testing
+entry_points:
+  - file: README.md
+    role: documentation
+  - file: cpp/src/main.cpp
+    role: simulation-entry
+  - file: rust/src/lib.rs
+    role: algorithm-library
+dependencies:
+  - rust >= 1.70
+  - cmake >= 3.10
+  - cpp17
