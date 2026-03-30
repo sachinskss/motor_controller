@@ -1,0 +1,26 @@
+mixed-cpp-rust-embedded-sim/
+├── skill.md                 # This file
+├── skill.yaml               # Manus skill metadata
+├── CMakeLists.txt           # Top-level build configuration
+├── rust/                    # Rust algorithms with C FFI
+│   ├── Cargo.toml
+│   └── src/
+│       ├── lib.rs           # FFI exports
+│       ├── pi.rs            # PI controller
+│       ├── foc.rs           # Clarke/Park transforms
+│       └── motor_model.rs   # Simulated motor model
+├── cpp/                     # C++ simulation firmware
+│   ├── inc/                 # Headers
+│   │   ├── hal_*.h          # Simulated hardware peripherals
+│   │   ├── bootloader.h
+│   │   └── motor_control.h
+│   └── src/
+│       ├── main.cpp         # Simulation entry point
+│       ├── hal_*.cpp        # Mock implementations
+│       ├── bootloader.cpp
+│       └── motor_control.cpp # Wrapper calling Rust
+├── python_tools/            # Analysis and tuning
+│   ├── plot_logs.py
+│   └── gui_tuner.py
+└── docs/
+    └── design.md            # Detailed design document
