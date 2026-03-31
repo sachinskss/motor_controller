@@ -1,37 +1,40 @@
-pub struct PI {
-    kp: f32,
-    ki: f32,
-    dt: f32,
+pub struct PIController {
+    pub kp: f32,
+    pub ki: f32,
     integral: f32,
-    limit_min: f32,
-    limit_max: f32,
+    out_min: f32,
+    out_max: f32,
+    sample_time: f32,
 }
 
-impl PI {
-    pub fn new(kp: f32, ki: f32, dt: f32) -> Self {
-        PI {
+impl PIController {
+    pub fn new(kp: f32, ki: f32, out_min: f32, out_max: f32, sample_time: f32) -> Self {
+        PIController {
             kp,
             ki,
-            dt,
             integral: 0.0,
-            limit_min: -1e6,
-            limit_max: 1e6,
+            out_min,
+            out_max,
+            sample_time,
         }
     }
 
-    pub fn set_output_limits(&mut self, min: f32, max: f32) {
-        self.limit_min = min;
-        self.limit_max = max;
-    }
+    pub fn update(&mut self, error: f32) -> f32 {
+        let proportional = self.kp * error;
+        
+        // Integral term with anti-windup
+        let integral_term = self.ki * self.integral;
+        let mut output = proportional + integral_term;
 
-    pub fn update(&mut self, setpoint: f32, measurement: f32) -> f32 {
-        let error = setpoint - measurement;
-        self.integral += error * self.dt;
-        // Clamp integral
-        self.integral = self.integral.clamp(self.limit_min, self.limit_max);
-        let mut output = self.kp * error + self.ki * self.integral;
-        output = output.clamp(self.limit_min, self.limit_max);
-        output
+        // Clamp output before updating integral (better anti-windup)
+        let clamped_output = output.max(self.out_min).min(self.out_max);
+
+        // Update integral only if output is not saturated
+        if output == clamped_output {
+            self.integral += error * self.sample_time;
+        }
+
+        clamped_output
     }
 
     pub fn reset(&mut self) {
@@ -45,13 +48,14 @@ mod tests {
 
     #[test]
     fn pi_reaches_setpoint() {
-        let mut pi = PI::new(1.0, 0.1, 0.01);
+        let mut pi = PIController::new(1.0, 10.0, -100.0, 100.0, 0.01);
         let mut measurement = 0.0;
         let setpoint = 10.0;
         for _ in 0..1000 {
-            let control = pi.update(setpoint, measurement);
+            let error = setpoint - measurement;
+            let control = pi.update(error);
             measurement += control * 0.01; // simple plant
         }
-        assert!((measurement - setpoint).abs() < 0.1);
+        assert!((measurement - setpoint).abs() < 0.1, "Value was {}", measurement);
     }
 }

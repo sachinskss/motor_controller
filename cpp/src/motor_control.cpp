@@ -1,43 +1,58 @@
 #include "motor_control.h"
-#include <cstdlib>
+#include <iostream>
+#include <random>
 
-// Declare Rust FFI functions (simplified)
-extern "C" {
-    void* pi_create(float kp, float ki, float dt);
-    float pi_update(void* pi, float setpoint, float measurement);
-    void pi_free(void* pi);
-    float add_two_floats(float a, float b);
+// Static random number generator for noise
+static std::default_random_engine generator;
+static std::normal_distribution<float> current_noise_distribution(0.0f, 1.0f);
+static std::normal_distribution<float> angle_noise_distribution(0.0f, 1.0f);
+
+MotorController::MotorController() : 
+    v_d_(0.0f), 
+    v_q_(0.0f), 
+    id_(0.0f), 
+    iq_(0.0f), 
+    electrical_angle_(0.0f), 
+    mechanical_speed_(0.0f),
+    current_noise_std_dev_(0.0f),
+    angle_noise_std_dev_(0.0f)
+{
 }
 
-MotorController::MotorController() : pi_speed(nullptr), pi_current_d(nullptr), pi_current_q(nullptr), v_d(0), v_q(0), speed_setpoint(0) {}
+void MotorController::init(float rs, float ls, float lambda_m, uint32_t p, float j, float b, float dt,
+                           float kp_id, float ki_id, float kp_iq, float ki_iq,
+                           float out_min_id, float out_max_id, float out_min_iq, float out_max_iq,
+                           float current_noise_std_dev, float angle_noise_std_dev) 
+{
+    // Call the Rust FFI function to initialize the motor model and PI controllers
+    rust_init_motor_control(rs, ls, lambda_m, p, j, b, dt,
+                            kp_id, ki_id, kp_iq, ki_iq,
+                            out_min_id, out_max_id, out_min_iq, out_max_iq);
 
-MotorController::~MotorController() {
-    if (pi_speed) pi_free(pi_speed);
-    if (pi_current_d) pi_free(pi_current_d);
-    if (pi_current_q) pi_free(pi_current_q);
+    current_noise_std_dev_ = current_noise_std_dev;
+    angle_noise_std_dev_ = angle_noise_std_dev;
+
+    std::cout << "MotorController initialized via Rust FFI." << std::endl;
 }
 
-void MotorController::init(float kp_speed, float ki_speed, float kp_current, float ki_current) {
-    const float dt = 0.0001f; // 100 us control period
-    pi_speed = pi_create(kp_speed, ki_speed, dt);
-    pi_current_d = pi_create(kp_current, ki_current, dt);
-    pi_current_q = pi_create(kp_current, ki_current, dt);
+void MotorController::update(float target_id, float target_iq, float load_torque,
+                             float v_bus, float i_a_raw, float i_b_raw, float i_c_raw) 
+{
+    float i_a_noisy = i_a_raw + (current_noise_distribution(generator) * current_noise_std_dev_);
+    float i_b_noisy = i_b_raw + (current_noise_distribution(generator) * current_noise_std_dev_);
+    float i_c_noisy = i_c_raw + (current_noise_distribution(generator) * current_noise_std_dev_);
+
+    float electrical_angle_noisy = electrical_angle_ + (angle_noise_distribution(generator) * angle_noise_std_dev_);
+
+    // Call the main Rust FOC and motor model step function
+    float ia_fb, ib_fb, ic_fb;
+    rust_motor_step(target_id, target_iq, load_torque,
+                    v_bus, i_a_noisy, i_b_noisy, i_c_noisy,
+                    &v_d_, &v_q_, &id_, &iq_,
+                    &electrical_angle_, &mechanical_speed_,
+                    &ia_fb, &ib_fb, &ic_fb);
 }
 
-void MotorController::setSpeedSetpoint(float rpm) {
-    speed_setpoint = rpm;
+void MotorController::get_abc_from_dq(float id, float iq, float electrical_angle, float* ia, float* ib, float* ic) {
+    rust_get_abc_from_dq(id, iq, electrical_angle, ia, ib, ic);
 }
-
-void MotorController::update(float measured_speed, float measured_current_d, float measured_current_q) {
-    // Speed loop outputs torque reference (converted to current reference)
-    float torque_ref = pi_update(pi_speed, speed_setpoint, measured_speed);
-    float i_q_ref = torque_ref; // simplified
-    float i_d_ref = 0.0f; // MTPA not implemented
-    
-    // Current loops
-    v_d = pi_update(pi_current_d, i_d_ref, measured_current_d);
-    v_q = pi_update(pi_current_q, i_q_ref, measured_current_q);
-}
-
-float MotorController::getVoltageD() { return v_d; }
-float MotorController::getVoltageQ() { return v_q; }

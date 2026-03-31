@@ -1,53 +1,119 @@
-// Simple PMSM model (electrical + mechanical)
+const FRAC_1_SQRT_3: f32 = 0.57735026919;
+/// Represents a Permanent Magnet Synchronous Motor (PMSM) model.
 pub struct MotorModel {
-    resistance: f32,    // stator resistance (ohms)
-    inductance: f32,    // inductance (H)
-    flux_linkage: f32,  // permanent magnet flux (Wb)
-    inertia: f32,       // moment of inertia (kg*m^2)
-    damping: f32,       // friction coefficient
-    current_d: f32,
-    current_q: f32,
-    speed: f32,         // rad/s
-    position: f32,      // rad
+    // Electrical parameters
+    rs: f32,       // Stator resistance [Ohm]
+    ls: f32,       // Stator inductance [H]
+    lambda_m: f32, // Permanent magnet flux linkage [Wb]
+    p: u32,        // Number of pole pairs
+
+    // Mechanical parameters
+    j: f32,        // Rotor inertia [kg*m^2]
+    b: f32,        // Viscous friction coefficient [N*m*s/rad]
+
+    // State variables
+    pub i_d: f32,            // d-axis current [A]
+    pub i_q: f32,            // q-axis current [A]
+    pub electrical_angle: f32, // Electrical angle [rad]
+    pub mechanical_angle: f32, // Mechanical angle [rad]
+    pub electrical_speed: f32, // Electrical speed [rad/s]
+    pub mechanical_speed: f32, // Mechanical speed [rad/s]
+
+    // Simulation timestep
     dt: f32,
 }
 
 impl MotorModel {
-    pub fn new(dt: f32) -> Self {
+    pub fn new(rs: f32, ls: f32, lambda_m: f32, p: u32, j: f32, b: f32, dt: f32) -> Self {
         MotorModel {
-            resistance: 0.5,
-            inductance: 0.001,
-            flux_linkage: 0.1,
-            inertia: 0.0001,
-            damping: 0.00001,
-            current_d: 0.0,
-            current_q: 0.0,
-            speed: 0.0,
-            position: 0.0,
+            rs,
+            ls,
+            lambda_m,
+            p,
+            j,
+            b,
+            i_d: 0.0,
+            i_q: 0.0,
+            electrical_angle: 0.0,
+            mechanical_angle: 0.0,
+            electrical_speed: 0.0,
+            mechanical_speed: 0.0,
             dt,
         }
     }
 
+    /// Performs one simulation step of the motor model.
     pub fn step(&mut self, v_d: f32, v_q: f32, load_torque: f32) {
-        // Electrical equations (simplified)
-        let di_d = (v_d - self.resistance * self.current_d + self.speed * self.inductance * self.current_q) / self.inductance;
-        let di_q = (v_q - self.resistance * self.current_q - self.speed * self.inductance * self.current_d - self.speed * self.flux_linkage) / self.inductance;
-        self.current_d += di_d * self.dt;
-        self.current_q += di_q * self.dt;
+        // Electrical model equations in the d-q frame
+        // di_d/dt = (v_d - Rs*i_d + omega_e*Ls*i_q) / Ls
+        // di_q/dt = (v_q - Rs*i_q - omega_e*Ls*i_d - omega_e*lambda_m) / Ls
+        let omega_e = self.electrical_speed;
 
-        // Torque equation
-        let torque = 1.5 * self.flux_linkage * self.current_q; // simplified
-        // Mechanical equation
-        let dw = (torque - load_torque - self.damping * self.speed) / self.inertia;
-        self.speed += dw * self.dt;
-        self.position += self.speed * self.dt;
+        let di_d_dt = (v_d - self.rs * self.i_d + omega_e * self.ls * self.i_q) / self.ls;
+        let di_q_dt = (v_q - self.rs * self.i_q - omega_e * self.ls * self.i_d - omega_e * self.lambda_m) / self.ls;
+
+        self.i_d += di_d_dt * self.dt;
+        self.i_q += di_q_dt * self.dt;
+
+        // Mechanical model equations
+        // Te = 1.5 * P * (lambda_m * i_q + (Ld - Lq) * i_d * i_q)
+        // For a surface PMSM, Ld = Lq, so the reluctance torque is zero.
+        let electrical_torque = 1.5 * self.p as f32 * self.lambda_m * self.i_q;
+        
+        // d_omega_m/dt = (Te - B*omega_m - T_load) / J
+        let d_mechanical_speed_dt = (electrical_torque - self.b * self.mechanical_speed - load_torque) / self.j;
+
+        self.mechanical_speed += d_mechanical_speed_dt * self.dt;
+        self.mechanical_angle += self.mechanical_speed * self.dt;
+
+        // Update electrical speed and angle
+        self.electrical_speed = self.mechanical_speed * self.p as f32;
+        self.electrical_angle += self.electrical_speed * self.dt;
+
+        // Normalize electrical angle to the range [0, 2*PI)
+        self.electrical_angle = self.electrical_angle.rem_euclid(2.0 * PI);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TOLERANCE: f32 = 1e-3;
+
+    fn get_default_model() -> MotorModel {
+        MotorModel::new(0.1, 0.001, 0.05, 2, 0.0001, 0.00001, 0.0001)
     }
 
-    pub fn get_currents(&self) -> (f32, f32, f32) {
-        // DQ to ABC (simplified, just return d,q for now)
-        (self.current_d, self.current_q, 0.0)
+    #[test]
+    fn motor_model_initialization() {
+        let model = get_default_model();
+        assert_eq!(model.i_d, 0.0);
+        assert_eq!(model.i_q, 0.0);
+        assert_eq!(model.electrical_angle, 0.0);
     }
 
-    pub fn get_speed(&self) -> f32 { self.speed }
-    pub fn get_position(&self) -> f32 { self.position }
+    #[test]
+    fn motor_model_step_no_load() {
+        let mut model = get_default_model();
+        // Apply some Vq to generate torque
+        model.step(0.0, 1.0, 0.0);
+        // Expect some q-axis current and speed to build up
+        assert!(model.i_q > 0.0, "i_q should be positive");
+        assert!(model.mechanical_speed > 0.0, "mechanical_speed should be positive");
+    }
+
+    #[test]
+    fn motor_model_step_with_load() {
+        let mut model = get_default_model();
+        let load_torque = 0.001;
+        // Apply Vq and a load torque
+        model.step(0.0, 1.0, load_torque);
+        
+        let mut model_no_load = get_default_model();
+        model_no_load.step(0.0, 1.0, 0.0);
+
+        // Expect speed to be lower with load
+        assert!(model.mechanical_speed < model_no_load.mechanical_speed);
+    }
 }

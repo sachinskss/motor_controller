@@ -29,11 +29,12 @@ add_executable(sim
     cpp/src/hal_spi.cpp
     cpp/src/bootloader.cpp
     cpp/src/motor_control.cpp
+    cpp/src/comm_server.cpp
 )
 
 add_dependencies(sim rust_build)
 target_include_directories(sim PRIVATE cpp/inc)
-target_link_libraries(sim ${RUST_LIB_PATH})
+target_link_libraries(sim ${RUST_LIB_PATH} jsoncpp)
 
 # Windows: additional link libraries
 if(WIN32)
