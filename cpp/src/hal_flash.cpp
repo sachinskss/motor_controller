@@ -30,3 +30,19 @@ bool Flash_Read(uint32_t address, uint8_t* buffer, uint32_t len) {
     std::memcpy(buffer, &flash_memory[address], len);
     return true;
 }
+void HAL_FLASH_Unlock() {
+    std::cout << "[Flash] Unlocked" << std::endl;
+}
+
+void HAL_FLASH_Lock() {
+    std::cout << "[Flash] Locked" << std::endl;
+}
+
+bool HAL_FLASH_EraseSector(uint32_t sector) {
+    // Simplified sector erase (maps to a page erase in simulation)
+    return Flash_ErasePage(sector * FLASH_PAGE_SIZE);
+}
+
+bool HAL_FLASH_Program(uint32_t address, uint32_t data) {
+    return Flash_Write(address, (const uint8_t*)&data, 4);
+}

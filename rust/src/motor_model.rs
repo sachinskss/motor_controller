@@ -1,5 +1,6 @@
 const FRAC_1_SQRT_3: f32 = 0.57735026919;
 /// Represents a Permanent Magnet Synchronous Motor (PMSM) model.
+use std::f32::consts::PI;
 pub struct MotorModel {
     // Electrical parameters
     rs: f32,       // Stator resistance [Ohm]

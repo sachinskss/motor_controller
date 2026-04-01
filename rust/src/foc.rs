@@ -1,5 +1,4 @@
-use std::f32::consts::FRAC_1_SQRT_3;
-
+const FRAC_1_SQRT_3: f32 = 0.57735026919;
 #[derive(Default)]
 pub struct Foc {
     // Clarke Transform outputs

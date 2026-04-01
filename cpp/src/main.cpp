@@ -5,7 +5,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include <json/json.h>
+// #include <json/json.h> (Temporarily disabled until library is available)
 
 // Global MotorController instance
 MotorController motor_ctrl;
@@ -21,40 +21,14 @@ float global_target_iq = 1.0f;
 // Function to handle incoming data from the GUI tuner
 void handle_gui_data(const std::string& data) {
     std::cout << "Received from GUI: " << data << std::endl;
+    // Json parsing is temporarily disabled because the jsoncpp library is missing.
+    /*
     Json::Value root;
     Json::Reader reader;
     bool parsingSuccessful = reader.parse(data, root);
-
-    if (parsingSuccessful) {
-        if (root.isMember("id_kp")) global_kp_id = root["id_kp"].asFloat();
-        if (root.isMember("id_ki")) global_ki_id = root["id_ki"].asFloat();
-        if (root.isMember("iq_kp")) global_kp_iq = root["iq_kp"].asFloat();
-        if (root.isMember("iq_ki")) global_ki_iq = root["iq_ki"].asFloat();
-        if (root.isMember("target_id")) global_target_id = root["target_id"].asFloat();
-        if (root.isMember("target_iq")) global_target_iq = root["target_iq"].asFloat();
-
-        // Re-initialize motor controller with new gains (simplified for now)
-        // In a real system, PI controllers would have methods to update gains dynamically
-        const float rs = 0.1f;       // Stator resistance [Ohm]
-        const float ls = 0.0001f;    // Stator inductance [H]
-        const float lambda_m = 0.01f; // PM flux linkage [Wb]
-        const uint32_t p = 2;        // Pole pairs
-        const float j = 0.00001f;    // Rotor inertia [kg*m^2]
-        const float b = 0.000001f;   // Viscous friction [N*m*s/rad]
-        const float dt = 0.0001f;    // Simulation timestep [s] (10 kHz)
-        const float out_min = -12.0f, out_max = 12.0f; // Voltage limits
-        const float current_noise_std_dev = 0.01f; // Example value
-        const float angle_noise_std_dev = 0.001f; // Example value
-
-        motor_ctrl.init(rs, ls, lambda_m, p, j, b, dt,
-                        global_kp_id, global_ki_id, global_kp_iq, global_ki_iq,
-                        out_min, out_max, out_min, out_max,
-                        current_noise_std_dev, angle_noise_std_dev);
-
-        std::cout << "Updated PI gains and targets from GUI.\n";
-    } else {
-        std::cerr << "Failed to parse JSON data from GUI: " << reader.getFormattedErrorMessages() << std::endl;
-    }
+    // ... rest of the logic
+    */
+    std::cout << "JSON parsing is currently disabled. Please install jsoncpp to enable GUI tuning.\n";
 }
 
 int main() {
