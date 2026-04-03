@@ -1,4 +1,5 @@
-const FRAC_1_SQRT_3: f32 = 0.57735026919;
+const FRAC_1_SQRT_3: f32 = 0.57735026919; // 1.0 / sqrt(3.0)
+
 #[derive(Default)]
 pub struct Foc {
     // Clarke Transform outputs
@@ -20,7 +21,7 @@ impl Foc {
     }
 
     /// Clarke Transform: Converts three-phase currents (a, b, c) into a two-phase orthogonal system (alpha, beta).
-    pub fn clarke_transform(&mut self, i_a: f32, i_b: f32, i_c: f32) {
+    pub fn clarke_transform(&mut self, i_a: f32, i_b: f32, _i_c: f32) {
         // Assuming balanced system, i_a + i_b + i_c = 0
         self.alpha = i_a;
         self.beta = FRAC_1_SQRT_3 * (i_a + 2.0 * i_b);

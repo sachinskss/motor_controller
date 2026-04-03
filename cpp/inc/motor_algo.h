@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void rust_init_motor_control(float rs,
                              float ls,
                              float lambda_m,
@@ -46,3 +50,7 @@ void rust_get_abc_from_dq(float id,
                           float *output_ia,
                           float *output_ib,
                           float *output_ic);
+
+#ifdef __cplusplus
+}
+#endif

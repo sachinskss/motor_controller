@@ -48,12 +48,10 @@ Before you begin, ensure you have the following installed:
     pip install numpy matplotlib
     # tkinter is usually part of Python installation, but might need `sudo apt-get install python3-tk` on Linux
     ```
-*   **JsonCpp Library**: For C++ JSON parsing. On Ubuntu/Debian:
-    ```bash
-    sudo apt-get update
-    sudo apt-get install -y libjsoncpp-dev
-    ```
-    For other OS, you might need to build from source or use a package manager.
+*   **JsonCpp Library (Optional)**: Required for real-time GUI tuning.
+    *   **Windows**: Recommended to use `vcpkg` or download pre-built binaries.
+    *   **Ubuntu/Debian**: `sudo apt-get install -y libjsoncpp-dev`
+    *   **Note**: If not installed, the project will still build, but JSON parsing in `main.cpp` will be disabled.
 
 ## 3. Building the Project
 
@@ -64,12 +62,13 @@ Follow these steps to build both the Rust library and the C++ simulation:
     cd C:\Users\PC\Desktop\motor_controller-main
     ```
 
-2.  **Generate Rust C-compatible Header**: This step uses `cbindgen` to create `motor_algo.h` from your Rust code, allowing C++ to call Rust functions.
+2.  **Generate Rust C-compatible Header**: This step uses `cbindgen` to create `motor_algo.h` from your Rust code.
     ```bash
-    # Ensure cargo is in your PATH (usually handled by rustup)
+    # Ensure cargo is in your PATH
     # If cbindgen is not installed, run: cargo install cbindgen
     cbindgen --config rust/cbindgen.toml --crate motor_algo --output cpp/inc/motor_algo.h --lang c rust
     ```
+    *Note: The generated header is now wrapped in `extern "C"` for C++ compatibility.*
 
 3.  **Create a build directory and run CMake**:
     ```bash
@@ -78,7 +77,7 @@ Follow these steps to build both the Rust library and the C++ simulation:
     cmake ..
     ```
 
-4.  **Build the project**: This will compile both the Rust static library and the C++ executable.
+4.  **Build the project**:
     ```bash
     cmake --build .
     ```
@@ -152,10 +151,8 @@ cargo test
 
 C++ unit tests (e.g., using GoogleTest) can be added to the `cpp` directory. This would involve configuring CMake to build and run these tests.
 
-## 7. Future Enhancements (from original request)
+## 7. Troubleshooting (Windows)
 
-*   **Space Vector PWM (SVPWM)**: The current SVPWM implementation is a placeholder. A full implementation would involve detailed sector determination and duty cycle calculations.
-*   **Bootloader Functionality**: The bootloader currently simulates an update. Real-world implementation would involve actual flash memory interaction and secure firmware validation.
-*   **Real-time Communication**: Enhance the TCP communication to send telemetry data back from the C++ simulation to the Python GUI for real-time plotting and monitoring.
-*   **Hardware Porting**: Replace simulated HAL with vendor-specific HAL (e.g., STM32Cube) to run on a real microcontroller.
-*   **Documentation**: Expand `docs/design.md` with detailed explanations of the architecture, FFI, and hardware porting guidelines.
+*   **Linker Errors (LNK2019)**: Ensure `motor_algo.h` is wrapped in `extern "C"`. The project has been updated to handle this automatically.
+*   **Socket Errors**: `comm_server.cpp` has been updated to use `Winsock2`. Ensure you link against `ws2_32.lib` (handled in `CMakeLists.txt`).
+*   **Missing json/json.h**: If you don't have `jsoncpp` installed, the build will proceed with JSON parsing disabled. To enable it, install `jsoncpp` and uncomment the relevant lines in `main.cpp` and `CMakeLists.txt`.
