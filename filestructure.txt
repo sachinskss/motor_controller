@@ -1,6 +1,5 @@
 mixed-cpp-rust-embedded-sim/
 ├── skill.md                 # This file
-├── skill.yaml               # Manus skill metadata
 ├── CMakeLists.txt           # Top-level build configuration
 ├── rust/                    # Rust algorithms with C FFI
 │   ├── Cargo.toml
