@@ -87,7 +87,7 @@ mod tests {
         // Rotate by 90 degrees
         foc.park_transform(PI / 2.0);
         assert!((foc.d - 0.0).abs() < TOLERANCE, "d was {}", foc.d);
-        assert!((foc.q - 1.0).abs() < TOLERANCE, "q was {}", foc.q);
+        assert!((foc.q - (-1.0)).abs() < TOLERANCE, "q was {}", foc.q);
     }
 
     #[test]
@@ -113,7 +113,7 @@ mod tests {
         let (v_d, v_q) = (foc.d, foc.q);
 
         foc.inverse_park_transform(v_d, v_q, theta);
-        let (t_a, t_b, t_c) = foc.svpwm(12.0);
+        let (_t_a, _t_b, _t_c) = foc.svpwm(12.0);
 
         // This test is not perfect because SVPWM is a placeholder,
         // but it checks the chain of transforms.

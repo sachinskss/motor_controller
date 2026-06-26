@@ -52,5 +52,5 @@ void rust_get_abc_from_dq(float id,
                           float *output_ic);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif

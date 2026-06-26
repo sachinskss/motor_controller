@@ -21,17 +21,16 @@ impl PIController {
 
     pub fn update(&mut self, error: f32) -> f32 {
         let proportional = self.kp * error;
-        
-        // Integral term with anti-windup
+
+        // Update integral state first using the discrete form.
+        self.integral += error * self.sample_time;
         let integral_term = self.ki * self.integral;
-        let mut output = proportional + integral_term;
+        let output = proportional + integral_term;
 
-        // Clamp output before updating integral (better anti-windup)
+        // Clamp output and prevent windup by backing out the integral update if needed.
         let clamped_output = output.max(self.out_min).min(self.out_max);
-
-        // Update integral only if output is not saturated
-        if output == clamped_output {
-            self.integral += error * self.sample_time;
+        if clamped_output != output {
+            self.integral -= error * self.sample_time;
         }
 
         clamped_output
